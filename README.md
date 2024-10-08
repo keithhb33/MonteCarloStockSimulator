@@ -82,18 +82,23 @@ cmake ..
 make
 ```
 
-To use the script:
+To compile and run the program:
 ```bash
 chmod +x compile.sh
 ./compile.sh
 ```
 
 After building, navigate to the build directory and run the executable:
-
 ```bash
 cd build
 ./MonteCarloSimulation
 ```
+
+Or run:
+```bash
+./start.sh
+```
+
 
 ## Usage
 
@@ -109,7 +114,7 @@ cd build
 
 ### Example
 
-![Monte Carlo Stock Simulator](images/MonteCarloExample.png)
+![Monte Carlo Stock Simulator](images/MonteCarloExample2.png)
 
 ## Technical Details
 
