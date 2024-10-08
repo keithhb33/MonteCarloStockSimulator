@@ -28,10 +28,6 @@ The Monte Carlo Stock Simulator is a C++ application that performs Monte Carlo s
   - [Monte Carlo Simulation Details](#monte-carlo-simulation-details)
   - [Data Management](#data-management)
   - [User Interface](#user-interface)
-- [Project Structure](#project-structure)
-  - [Key Files](#key-files)
-- [Contributing](#contributing)
-- [License](#license)
 
 ## Features
 
