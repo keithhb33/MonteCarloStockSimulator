@@ -10,7 +10,9 @@ class MonteCarlo : public QObject
 public:
     explicit MonteCarlo(QObject *parent = nullptr);
     void setHistoricalPrices(const QVector<double> &prices);
-    QVector<double> runSimulation(int days, bool mostLikely);
+
+    // Add this method
+    void runSimulations(int days, int numSimulations, QVector<QVector<double>> &simulations, QVector<double> &likelihoods);
 
 private:
     QVector<double> historicalPrices;

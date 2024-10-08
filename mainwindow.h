@@ -19,6 +19,12 @@ public:
 
 private slots:
     void onSimulateButtonClicked();
+    void onSelectionChanged();
+    void onMouseMoveInPlot(QMouseEvent *event);
+    void onLegendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *item);
+
+    // Add this slot
+    void onMostLikelyCheckBoxToggled(bool checked);
 
 private:
     QLineEdit *tickerInput;
@@ -29,12 +35,21 @@ private:
 
     MonteCarlo *monteCarlo;
 
-    void plotSimulation(const QVector<double> &simulationPrices);
+    void plotSimulations(const QVector<QVector<double>> &simulations, const QVector<double> &likelihoods, bool mostLikely);
     void setupUI();
     void setupPlot();
 
     QVector<double> prices;
     QVector<QDateTime> dates;
+
+    QCPGraph *selectedGraph = nullptr;       // For interactive tooltip
+    QCPItemTracer *graphTracer = nullptr;    // Tracer to follow the graph
+
+    // Add these member variables
+    QString lastTicker;
+    QVector<QVector<double>> storedSimulations;
+    QVector<double> storedLikelihoods;
+    int storedHistoricalDays;
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;

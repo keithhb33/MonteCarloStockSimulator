@@ -32,18 +32,28 @@ void MonteCarlo::calculateParameters()
     volatility = sqrt(variance);
 }
 
-QVector<double> MonteCarlo::runSimulation(int days, bool mostLikely)
+void MonteCarlo::runSimulations(int days, int numSimulations, QVector<QVector<double>> &simulations, QVector<double> &likelihoods)
 {
-    QVector<double> simulation;
-    simulation.append(historicalPrices.last());
+    simulations.clear();
+    likelihoods.clear();
     std::default_random_engine generator;
     std::normal_distribution<double> distribution(0.0, 1.0);
 
-    for (int i = 1; i < days; ++i) {
-        double randomShock = mostLikely ? 0 : distribution(generator);
-        double price = simulation.last() * exp(drift + volatility * randomShock);
-        simulation.append(price);
-    }
+    for (int n = 0; n < numSimulations; ++n)
+    {
+        QVector<double> simulation;
+        simulation.append(historicalPrices.last());
+        double logLikelihood = 0.0;
+        for (int i = 1; i < days; ++i)
+        {
+            double randomShock = distribution(generator);
+            double price = simulation.last() * exp(drift + volatility * randomShock);
+            simulation.append(price);
 
-    return simulation;
+            // Compute log-likelihood (negative sum of squares)
+            logLikelihood -= 0.5 * randomShock * randomShock;
+        }
+        simulations.append(simulation);
+        likelihoods.append(logLikelihood);
+    }
 }
