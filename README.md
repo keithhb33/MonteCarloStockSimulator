@@ -55,7 +55,7 @@ The Monte Carlo Stock Simulator is a C++ application that performs Monte Carlo s
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/MonteCarloStockSimulator.git
+git clone https://github.com/keithhb33/MonteCarloStockSimulator.git
 cd MonteCarloStockSimulator
 ```
 
