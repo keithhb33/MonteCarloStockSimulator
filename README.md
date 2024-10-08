@@ -113,8 +113,9 @@ Or run:
    - **Pan**: Click and drag to move around the graph.
 
 ### Example
-
-![Monte Carlo Stock Simulator](images/MonteCarloExample2.png)
+<p align="center">
+  <img src="images/MonteCarloExample2.png" alt="Monte Carlo Stock Simulator">
+</p>
 
 ## Technical Details
 
