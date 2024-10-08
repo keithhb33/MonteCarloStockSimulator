@@ -1,5 +1,0 @@
-/home/keith-burroughs/VSCodeProjects/MonteCarloStockSimulator/build/CMakeFiles/MonteCarloSimulator.dir
-/home/keith-burroughs/VSCodeProjects/MonteCarloStockSimulator/build/CMakeFiles/edit_cache.dir
-/home/keith-burroughs/VSCodeProjects/MonteCarloStockSimulator/build/CMakeFiles/rebuild_cache.dir
-/home/keith-burroughs/VSCodeProjects/MonteCarloStockSimulator/build/CMakeFiles/MonteCarloSimulator_autogen_timestamp_deps.dir
-/home/keith-burroughs/VSCodeProjects/MonteCarloStockSimulator/build/CMakeFiles/MonteCarloSimulator_autogen.dir
