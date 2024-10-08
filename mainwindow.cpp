@@ -43,8 +43,22 @@ MainWindow::MainWindow(QWidget *parent)
     // Connect the checkbox toggled signal
     connect(mostLikelyCheckBox, &QCheckBox::toggled, this, &MainWindow::onMostLikelyCheckBoxToggled);
 
+    // Corrected connect statement for xAxis rangeChanged signal
+    connect(customPlot->xAxis, static_cast<void(QCPAxis::*)(const QCPRange&)>(&QCPAxis::rangeChanged),
+            this, &MainWindow::onXAxisRangeChanged);
+
     setMouseTracking(true);
     customPlot->setMouseTracking(true);
+
+    // Initialize variables
+    dataStartDate = QDateTime();
+    dataEndDate = QDateTime();
+    maxHistoricalDays = 0;
+    maxSimulationDays = 0;
+    lastTicker = "";
+    storedSimulations.clear();
+    storedLikelihoods.clear();
+    storedHistoricalDays = 0;
 }
 
 MainWindow::~MainWindow()
@@ -78,12 +92,6 @@ void MainWindow::setupUI()
     QWidget *centralWidget = new QWidget(this);
     centralWidget->setLayout(mainLayout);
     setCentralWidget(centralWidget);
-
-    // Initialize stored data
-    lastTicker = "";
-    storedSimulations.clear();
-    storedLikelihoods.clear();
-    storedHistoricalDays = 0;
 }
 
 void MainWindow::setupPlot()
@@ -96,10 +104,10 @@ void MainWindow::setupPlot()
     customPlot->yAxis->setLabel("Stock Price");
 
     customPlot->legend->setVisible(true);
-    customPlot->legend->setBrush(QBrush(QColor(255,255,255,230)));
+    customPlot->legend->setBrush(QBrush(QColor(255, 255, 255, 230)));
 
     // Move the legend to the top-left corner
-    customPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignTop|Qt::AlignLeft);
+    customPlot->axisRect()->insetLayout()->setInsetAlignment(0, Qt::AlignTop | Qt::AlignLeft);
 
     customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables | QCP::iSelectLegend);
 }
@@ -131,9 +139,6 @@ void MainWindow::onSimulateButtonClicked()
     QString output = process.readAllStandardOutput();
     QString errorOutput = process.readAllStandardError();
 
-    qDebug() << "Python script output:" << output;
-    qDebug() << "Python script error output:" << errorOutput;
-
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
         QMessageBox::critical(this, "Error", "Failed to fetch data.\n" + errorOutput);
         return;
@@ -162,14 +167,12 @@ void MainWindow::onSimulateButtonClicked()
             QString dateString = fields.at(0);
             QDateTime date = QDateTime::fromString(dateString, "yyyy-MM-dd");
             if (!date.isValid()) {
-                qDebug() << "Invalid date format:" << dateString;
                 continue;
             }
 
             bool ok;
             double closePrice = fields.at(4).toDouble(&ok);
             if (!ok) {
-                qDebug() << "Failed to convert price to double:" << fields.at(4);
                 continue;
             }
 
@@ -239,6 +242,7 @@ void MainWindow::onSimulateButtonClicked()
 
     customPlot->clearGraphs();
 
+    // Plot historical data
     customPlot->addGraph();
     customPlot->graph(0)->setPen(QPen(Qt::blue));
     customPlot->graph(0)->setName("Historical Data");
@@ -262,11 +266,16 @@ void MainWindow::onSimulateButtonClicked()
     lastTicker = ticker;
     storedHistoricalDays = historicalDays;
 
-    // Plot simulations
-    plotSimulations(simulations, likelihoods, mostLikely);
-
     this->dates = limitedDates;
     this->prices = limitedPrices;
+
+    dataStartDate = dates.first();
+    dataEndDate = dates.last();
+    maxHistoricalDays = dates.size();
+    maxSimulationDays = days;
+
+    // Plot simulations
+    plotSimulations(simulations, likelihoods, mostLikely);
 
     customPlot->rescaleAxes();
     customPlot->replot();
@@ -274,6 +283,14 @@ void MainWindow::onSimulateButtonClicked()
 
 void MainWindow::plotSimulations(const QVector<QVector<double>> &simulations, const QVector<double> &likelihoods, bool mostLikely)
 {
+    // Remove existing simulation graphs (graphs from index 1 onwards)
+    int graphCount = customPlot->graphCount();
+    // Assuming the historical data graph is at index 0
+    for (int i = graphCount - 1; i > 0; --i)
+    {
+        customPlot->removeGraph(i);
+    }
+
     QDateTime lastDate = dates.last();
 
     if (mostLikely)
@@ -319,7 +336,7 @@ void MainWindow::plotSimulations(const QVector<QVector<double>> &simulations, co
         }
     }
 
-    customPlot->xAxis->setRange(dates.first().toSecsSinceEpoch(), lastDate.addDays(simulations[0].size()).toSecsSinceEpoch());
+    customPlot->xAxis->setRange(dataStartDate.toSecsSinceEpoch(), lastDate.addDays(maxSimulationDays).toSecsSinceEpoch());
     customPlot->yAxis->rescale();
     customPlot->replot();
 }
@@ -355,11 +372,6 @@ void MainWindow::onMostLikelyCheckBoxToggled(bool checked)
         customPlot->rescaleAxes();
         customPlot->replot();
     }
-    else
-    {
-        // No simulations available; do nothing or inform the user
-        // QMessageBox::information(this, "Information", "Please run the simulation first.");
-    }
 }
 
 void MainWindow::onSelectionChanged()
@@ -369,7 +381,7 @@ void MainWindow::onSelectionChanged()
     for (int i = 0; i < customPlot->graphCount(); ++i)
     {
         QCPGraph *graph = customPlot->graph(i);
-    if (!graph->selection().isEmpty())
+        if (!graph->selection().isEmpty())
         {
             graphSelected = true;
             selectedGraph = graph;
@@ -449,7 +461,7 @@ void MainWindow::onLegendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *i
             QCPGraph *graph = qobject_cast<QCPGraph *>(plItem->plottable());
             if (graph)
             {
-                // Select the graph
+                // Select the graph by selecting all its data points
                 customPlot->deselectAll();
                 graph->setSelection(QCPDataSelection(graph->data()->dataRange()));
                 onSelectionChanged();
@@ -459,8 +471,188 @@ void MainWindow::onLegendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *i
     }
 }
 
+void MainWindow::onXAxisRangeChanged(const QCPRange &newRange)
+{
+    // Convert axis range to dates
+    QDateTime newStartDate = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(newRange.lower));
+    QDateTime newEndDate = QDateTime::fromSecsSinceEpoch(static_cast<qint64>(newRange.upper));
+
+    bool dataUpdated = false;
+
+    // Ensure the new start date is valid and before the end date
+    if (newStartDate < dataStartDate)
+    {
+        if (newStartDate >= dataEndDate)
+        {
+            qDebug() << "Invalid date range: Start date is after end date.";
+            return;
+        }
+
+        // Fetch more historical data
+        fetchHistoricalData(newStartDate, dataStartDate);
+        dataStartDate = newStartDate;
+        dataUpdated = true;
+    }
+
+    // Check if we need to extend the simulation
+    QDateTime simulationEndDate = dataEndDate.addDays(maxSimulationDays);
+    if (newEndDate > simulationEndDate)
+    {
+        int additionalDays = simulationEndDate.daysTo(newEndDate);
+        if (additionalDays > 0)
+        {
+            extendSimulation(additionalDays);
+            dataUpdated = true;
+        }
+    }
+
+    if (dataUpdated)
+    {
+        customPlot->rescaleAxes();
+        customPlot->replot();
+    }
+}
+
+void MainWindow::fetchHistoricalData(const QDateTime &startDate, const QDateTime &endDate)
+{
+    QString ticker = tickerInput->text().trimmed();
+    if (ticker.isEmpty())
+        return;
+
+    // Adjust startDate to next trading day if it's a weekend
+    QDateTime adjustedStartDate = startDate;
+    while (adjustedStartDate.date().dayOfWeek() > 5) // Saturday=6, Sunday=7
+    {
+        adjustedStartDate = adjustedStartDate.addDays(1);
+    }
+
+    // Adjust endDate to previous trading day if it's a weekend
+    QDateTime adjustedEndDate = endDate;
+    while (adjustedEndDate.date().dayOfWeek() > 5)
+    {
+        adjustedEndDate = adjustedEndDate.addDays(-1);
+    }
+
+    // Ensure start date is before end date
+    if (adjustedStartDate >= adjustedEndDate)
+    {
+        qDebug() << "Adjusted dates are invalid. Start date is after end date.";
+        return;
+    }
+
+    // Format dates
+    QString startDateStr = adjustedStartDate.toString("yyyy-MM-dd");
+    QString endDateStr = adjustedEndDate.toString("yyyy-MM-dd");
+
+    // Call Python script
+    QString scriptPath = QDir::currentPath() + "/fetch_data.py";
+    QStringList arguments;
+    arguments << scriptPath << ticker << startDateStr << endDateStr;
+
+    QProcess process;
+    process.start("python3", arguments);
+    if (!process.waitForStarted()) {
+        QMessageBox::critical(this, "Error", "Failed to start the Python script.");
+        return;
+    }
+
+    process.waitForFinished(-1);
+
+    QString output = process.readAllStandardOutput();
+    QString errorOutput = process.readAllStandardError();
+
+    if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+        QMessageBox::critical(this, "Error", "Failed to fetch data.\n" + errorOutput);
+        return;
+    }
+
+    // Read new data
+    QFile file("stock_data.csv");
+    if (!file.exists()) {
+        QMessageBox::critical(this, "Error", "Data file not found.");
+        return;
+    }
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(this, "Error", "Failed to open data file.");
+        return;
+    }
+
+    QVector<double> newPrices;
+    QVector<QDateTime> newDates;
+    QTextStream in(&file);
+    QString header = in.readLine();
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        QStringList fields = line.split(',');
+
+        if (fields.size() > 5) {
+            QString dateString = fields.at(0);
+            QDateTime date = QDateTime::fromString(dateString, "yyyy-MM-dd");
+            if (!date.isValid()) {
+                continue;
+            }
+
+            bool ok;
+            double closePrice = fields.at(4).toDouble(&ok);
+            if (!ok) {
+                continue;
+            }
+
+            newDates.append(date);
+            newPrices.append(closePrice);
+        }
+    }
+    file.close();
+
+    // Prepend new data, avoiding duplicates
+    if (!dates.isEmpty() && !newDates.isEmpty())
+    {
+        // Remove overlapping dates
+        while (!newDates.isEmpty() && newDates.last() >= dates.first())
+        {
+            newDates.removeLast();
+            newPrices.removeLast();
+        }
+    }
+
+    dates = newDates + dates;
+    prices = newPrices + prices;
+
+    // Update plot data
+    QVector<double> timeValues;
+    for (const QDateTime &date : dates) {
+        timeValues.append(date.toSecsSinceEpoch());
+    }
+
+    customPlot->graph(0)->setData(timeValues, prices);
+
+    dataStartDate = dates.first();
+}
+
+void MainWindow::extendSimulation(int additionalDays)
+{
+    int numSimulations = 10;
+    QVector<QVector<double>> simulations;
+    QVector<double> likelihoods;
+
+    monteCarlo->setHistoricalPrices(prices);
+
+    // Run simulations for the extended period
+    monteCarlo->runSimulations(maxSimulationDays + additionalDays, numSimulations, simulations, likelihoods);
+
+    // Update stored simulations
+    storedSimulations = simulations;
+    storedLikelihoods = likelihoods;
+
+    maxSimulationDays += additionalDays;
+
+    // Re-plot simulations
+    bool mostLikely = mostLikelyCheckBox->isChecked();
+    plotSimulations(storedSimulations, storedLikelihoods, mostLikely);
+}
+
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    // Existing mouse move event handling (if any)
     QMainWindow::mouseMoveEvent(event);
 }

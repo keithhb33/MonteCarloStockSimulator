@@ -6,6 +6,7 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include <QPushButton>
+#include <QDateTime>
 #include "qcustomplot.h"
 #include "montecarlo.h"
 
@@ -19,12 +20,11 @@ public:
 
 private slots:
     void onSimulateButtonClicked();
+    void onMostLikelyCheckBoxToggled(bool checked);
     void onSelectionChanged();
     void onMouseMoveInPlot(QMouseEvent *event);
     void onLegendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *item);
-
-    // Add this slot
-    void onMostLikelyCheckBoxToggled(bool checked);
+    void onXAxisRangeChanged(const QCPRange &newRange);
 
 private:
     QLineEdit *tickerInput;
@@ -42,17 +42,26 @@ private:
     QVector<double> prices;
     QVector<QDateTime> dates;
 
-    QCPGraph *selectedGraph = nullptr;       // For interactive tooltip
-    QCPItemTracer *graphTracer = nullptr;    // Tracer to follow the graph
+    QCPGraph *selectedGraph = nullptr;
+    QCPItemTracer *graphTracer = nullptr;
 
-    // Add these member variables
+    // Stored data for reuse
     QString lastTicker;
     QVector<QVector<double>> storedSimulations;
     QVector<double> storedLikelihoods;
     int storedHistoricalDays;
 
+    // Variables for dynamic zooming
+    QDateTime dataStartDate;
+    QDateTime dataEndDate;
+    int maxHistoricalDays;
+    int maxSimulationDays;
+
+    void fetchHistoricalData(const QDateTime &startDate, const QDateTime &endDate);
+    void extendSimulation(int additionalDays);
+
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
 };
 
-#endif
+#endif // MAINWINDOW_H

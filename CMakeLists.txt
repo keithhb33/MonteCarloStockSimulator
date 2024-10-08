@@ -17,7 +17,7 @@ find_package(Qt5 COMPONENTS Widgets Network PrintSupport REQUIRED)
 # Include directories
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}  # Necessary for MOC-generated files
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 # Add the executable
@@ -32,5 +32,5 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt5::Widgets
     Qt5::Network
-    Qt5::PrintSupport  # Add this line
+    Qt5::PrintSupport
 )
