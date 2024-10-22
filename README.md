@@ -37,7 +37,7 @@ The Monte Carlo Stock Simulator is a C++ application that performs Monte Carlo s
 - **Historical Data Display**: View full historical data when zooming out, beyond the initially selected period.
 
 ## Prerequisites
-
+- **Linux**: Ubuntu preferably.
 - **C++ Compiler**: Supports C++11 or later.
 - **Qt Framework**: Version 5 or later.
 - **QCustomPlot**: Qt C++ widget for plotting and data visualization.
